@@ -3,36 +3,42 @@
 import logging
 
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
+from . import GrimmoryConfigEntry
 from .api import GrimmoryApiClient
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_entry(hass, entry, async_add_entities) -> None:
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: GrimmoryConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
+) -> None:
     """Set up the Grimmory sensor platform."""
 
     client = entry.runtime_data
 
     sensors = [
-        GrimmorySensor(client),
-        # Add more sensors as needed
+        GrimmoryBookCountSensor(client),
     ]
     _LOGGER.debug("Setting up Grimmory sensors: %s", sensors)
 
-    async_add_entities(sensors)
+    async_add_entities(sensors, update_before_add=True)
 
 
-class GrimmorySensor(SensorEntity):
-    """A test sensor for Grimmory."""
+class GrimmoryBookCountSensor(SensorEntity):
+    """A sensor for the book count in Grimmory."""
 
-    _attr_name = "Grimmory test"
-    _attr_unique_id = "grimmory_test"
+    _attr_has_entity_name = True
+    _attr_name = "Book count"
+    _attr_unique_id = "book_count"
 
     def __init__(self, client: GrimmoryApiClient) -> None:
         """Initialize the sensor."""
         self._client = client
-        _LOGGER.debug("GrimmorySensor initialized")
 
     async def async_update(self) -> None:
         """Fetch number of books."""

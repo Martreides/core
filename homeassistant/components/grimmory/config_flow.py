@@ -1,7 +1,7 @@
 """Config flow for the grimmory integration."""
 
 import logging
-from typing import Any
+from typing import Any, override
 
 import aiohttp
 import probatio
@@ -11,11 +11,10 @@ from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_TOKEN, CONF_USERN
 from homeassistant.core import HomeAssistant
 
 from .api import GrimmoryApiClient
-from .const import DOMAIN
+from .const import CONF_REFRESH_TOKEN, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO adjust the data schema to the data that you need
 STEP_USER_DATA_SCHEMA = probatio.Schema(
     {
         probatio.Required(CONF_HOST): str,
@@ -45,12 +44,9 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
-    # TODO validate the data can be used to set up a connection.
-
-    client = GrimmoryApiClient()
 
     try:
-        token = await client.login(data)
+        response_json = await GrimmoryApiClient.login(data)
     except aiohttp.ClientResponseError as err:
         if err.status in (401, 403):
             raise InvalidAuth from None
@@ -62,15 +58,17 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     return {
         CONF_HOST: data[CONF_HOST],
         CONF_USERNAME: data[CONF_USERNAME],
-        CONF_TOKEN: token,
+        CONF_TOKEN: response_json["accessToken"],
+        CONF_REFRESH_TOKEN: response_json["refreshToken"],
     }
 
 
-class ConfigFlow(ConfigFlow, domain=DOMAIN):
+class GrimmoryConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for grimmory."""
 
     VERSION = 1
 
+    @override
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:

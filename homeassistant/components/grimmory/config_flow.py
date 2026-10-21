@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
+from .api import GrimmoryApiClient
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,11 +46,8 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     """
     # TODO validate the data can be used to set up a connection.
 
-    # If your PyPI package is not built with async, pass your methods
-    # to the executor:
-    # await hass.async_add_executor_job(
-    #     your_validate_func, data[CONF_USERNAME], data[CONF_PASSWORD]
-    # )
+    client = GrimmoryApiClient()
+    await client.login(data)
 
     hub = PlaceholderHub(data[CONF_HOST])
 

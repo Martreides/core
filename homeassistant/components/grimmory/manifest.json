@@ -1,12 +1,8 @@
 {
   "domain": "grimmory",
   "name": "grimmory",
-  "categories": [
-    "media_entertainment"
-  ],
-  "codeowners": [
-    "@martreides"
-  ],
+  "categories": ["media_entertainment"],
+  "codeowners": ["@martreides"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://www.home-assistant.io/integrations/grimmory",

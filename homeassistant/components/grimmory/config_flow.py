@@ -3,10 +3,11 @@
 import logging
 from typing import Any
 
+import aiohttp
 import probatio
 
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
-from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_USERNAME
+from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_TOKEN, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
 from .api import GrimmoryApiClient
@@ -47,20 +48,22 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     # TODO validate the data can be used to set up a connection.
 
     client = GrimmoryApiClient()
-    await client.login(data)
 
-    hub = PlaceholderHub(data[CONF_HOST])
-
-    if not await hub.authenticate(data[CONF_USERNAME], data[CONF_PASSWORD]):
-        raise InvalidAuth
-
-    # If you cannot connect:
-    # throw CannotConnect
-    # If the authentication is wrong:
-    # InvalidAuth
+    try:
+        token = await client.login(data)
+    except aiohttp.ClientResponseError as err:
+        if err.status in (401, 403):
+            raise InvalidAuth from None
+        raise CannotConnect from None
+    except aiohttp.ClientError, TimeoutError:
+        raise CannotConnect from None
 
     # Return info that you want to store in the config entry.
-    return {"title": "Name of the device"}
+    return {
+        CONF_HOST: data[CONF_HOST],
+        CONF_USERNAME: data[CONF_USERNAME],
+        CONF_TOKEN: token,
+    }
 
 
 class ConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -84,7 +87,7 @@ class ConfigFlow(ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception")
                 errors["base"] = "unknown"
             else:
-                return self.async_create_entry(title=info["title"], data=user_input)
+                return self.async_create_entry(title=user_input[CONF_HOST], data=info)
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
